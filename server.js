@@ -6,10 +6,31 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS configuration
+// CORS configuration for production deployment
+const allowedOrigins = [
+  'http://localhost:3000', // React dev server
+  'http://localhost:5000', // Backend dev server
+  'http://127.0.0.1:5500', // Live server
+  'https://sarkari-sahayak.netlify.app', // Netlify frontend
+  'https://sarkari-sahayak-frontend.netlify.app', // Alternative Netlify URL
+  process.env.FRONTEND_URL // Environment variable for additional URLs
+].filter(Boolean); // Remove any undefined values
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
 }));
 
 // Body parsing middleware
