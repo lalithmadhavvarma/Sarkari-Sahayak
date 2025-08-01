@@ -128,4 +128,25 @@ router.post('/refresh-token', async (req, res) => {
   }
 });
 
+// Test endpoint to check if admin exists
+router.get('/test-admin', async (req, res) => {
+  try {
+    const admin = await User.findOne({ email: 'admin@sarkarisahayak.com' });
+    if (admin) {
+      res.json({ 
+        message: 'Admin exists',
+        email: admin.email,
+        name: admin.name
+      });
+    } else {
+      res.json({ 
+        message: 'Admin does not exist',
+        suggestion: 'Create admin user first'
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router; 
