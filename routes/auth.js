@@ -40,11 +40,17 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
     
-    // Create JWT token
+    // Create JWT token with more user data
     const token = jwt.sign(
-      { userId: user._id, email: user.email },
+      { 
+        userId: user._id, 
+        email: user.email,
+        name: user.name,
+        role: 'admin',
+        loginTime: new Date().toISOString()
+      },
       process.env.JWT_SECRET || 'admin-secret-key-2024',
-      { expiresIn: '24h' }
+      { expiresIn: '7d' } // Changed to 7 days
     );
     
     res.json({ 
@@ -57,6 +63,56 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Refresh token endpoint
+router.post('/refresh-token', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+
+    // Verify the existing token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'admin-secret-key-2024');
+    
+    // Get user data
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    // Create new token
+    const newToken = jwt.sign(
+      { 
+        userId: user._id, 
+        email: user.email,
+        name: user.name,
+        role: 'admin',
+        loginTime: new Date().toISOString()
+      },
+      process.env.JWT_SECRET || 'admin-secret-key-2024',
+      { expiresIn: '7d' }
+    );
+
+    res.json({ 
+      message: 'Token refreshed successfully',
+      token: newToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expired' });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
     res.status(500).json({ error: 'Server error' });
   }
 });
