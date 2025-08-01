@@ -28,14 +28,22 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('Login attempt:', { email, password: password ? '***' : 'missing' });
+    
     if (!email || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
+    
     const user = await User.findOne({ email });
+    console.log('User found:', user ? 'Yes' : 'No');
+    
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
+    
     const match = await bcrypt.compare(password, user.password);
+    console.log('Password match:', match);
+    
     if (!match) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
@@ -50,8 +58,10 @@ router.post('/login', async (req, res) => {
         loginTime: new Date().toISOString()
       },
       process.env.JWT_SECRET || 'admin-secret-key-2024',
-      { expiresIn: '7d' } // Changed to 7 days
+      { expiresIn: '7d' }
     );
+    
+    console.log('Token created successfully');
     
     res.json({ 
       message: 'Login successful',
@@ -63,7 +73,8 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
